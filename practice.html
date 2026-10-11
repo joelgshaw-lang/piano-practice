@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Piano Practice</title>
+  <link rel="stylesheet" href="practice.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Piano">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#161920">
+</head>
+<body>
+  <!-- Library -->
+  <section id="library" hidden>
+    <header class="lib-head">
+      <h1>🎹 Piano Practice</h1>
+      <div class="lib-actions">
+        <button class="btn" id="pasteLink" title="Add a song from a “Send to iPad” link you copied">Paste song link</button>
+        <label class="btn">Import song file<input type="file" id="importMidi" accept=".mid,.midi,audio/midi,.json,application/json" hidden></label>
+      </div>
+    </header>
+    <p class="lib-help">Open a falling-notes piano tutorial on YouTube and press <b>Scan this video</b> in the 🎹 card at the bottom-left of the page. Scanned songs appear here.</p>
+    <div id="songList" class="song-list"></div>
+
+    <div class="settings" id="siteBox">
+      <h2>iPad</h2>
+      <p>To practise on an iPad, put this practice page on the web once (see the iPad guide in the README), then paste its address here.
+        <b>Send to iPad</b> then makes a link that adds the song on the iPad. AirDrop or message it to yourself.</p>
+      <label>iPad page address
+        <input type="url" id="siteUrl" placeholder="https://yourname.github.io/piano-practice/" autocomplete="off" spellcheck="false">
+      </label>
+    </div>
+
+    <div class="modal" id="shareBox" hidden>
+      <div class="modal-card">
+        <h2>Send to iPad</h2>
+        <p class="muted">The link is copied. Paste it into Messages or Notes, or AirDrop it to the iPad, then open it there.</p>
+        <input type="text" id="shareLink" readonly>
+        <div class="row">
+          <button class="btn primary" id="shareCopy">Copy</button>
+          <button class="btn" id="shareClose">Done</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Player -->
+  <section id="player" hidden>
+    <div class="toolbar">
+      <button class="icon" id="backBtn" title="Song library">☰</button>
+      <div class="song-title" id="songTitle"></div>
+      <div class="spacer"></div>
+      <button class="midi-pill" id="midiPill" title="MIDI keyboard status. Click to reconnect.">Connecting…</button>
+      <button class="small" id="micBtn" title="Listen to an acoustic piano through the microphone">🎤 Microphone</button>
+      <label class="check" id="micSensWrap" hidden title="Raise if notes aren't heard; lower if it hears notes you didn't play">Sensitivity
+        <input type="range" id="micSens" min="0" max="100" value="50">
+      </label>
+    </div>
+
+    <div class="controls">
+      <button class="play" id="playBtn" title="Play / pause (Space)">▶</button>
+      <button class="icon" id="restartBtn" title="Restart (R)">⟲</button>
+
+      <div class="group" role="group" aria-label="Mode">
+        <span class="label">Mode</span>
+        <div class="seg" id="modeSeg">
+          <button data-v="wait" title="The song waits for you to play the right notes (1)">Learn</button>
+          <button data-v="play" title="Keep time: notes you miss turn red (2)">Play</button>
+          <button data-v="watch" title="Listen and watch (3)">Watch</button>
+        </div>
+      </div>
+
+      <div class="group" role="group" aria-label="View">
+        <span class="label">View</span>
+        <div class="seg" id="viewSeg">
+          <button data-v="notes" title="Falling notes (V)">Falling</button>
+          <button data-v="staff" title="Sheet music staff (V)">Staff</button>
+        </div>
+      </div>
+
+      <div class="group" role="group" aria-label="Hands">
+        <span class="label">Hands</span>
+        <div class="seg" id="handSeg">
+          <button data-v="both">Both</button>
+          <button data-v="R">Right</button>
+          <button data-v="L">Left</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="label">Speed</span>
+        <input type="range" id="speed" min="25" max="150" step="5" value="100">
+        <span class="val" id="speedVal">100%</span>
+      </div>
+
+      <div class="group">
+        <span class="label">Loop</span>
+        <button class="small" id="loopA" title="Set loop start here ([)">A</button>
+        <button class="small" id="loopB" title="Set loop end here (])">B</button>
+        <button class="small" id="loopClear" title="Clear loop (\)">✕</button>
+      </div>
+
+      <div class="group" title="Transpose the whole song up or down in semitones">
+        <span class="label">Key</span>
+        <button class="small" id="trDown" title="Down a semitone">−</button>
+        <span class="val" id="trVal">0</span>
+        <button class="small" id="trUp" title="Up a semitone">+</button>
+        <button class="small" id="trEasy" title="Move to the key with the fewest black keys">Easiest</button>
+        <span class="keyname" id="keyName"></span>
+      </div>
+
+      <div class="group">
+        <span class="label">Octave</span>
+        <button class="small" id="octDown" title="Shift all notes down an octave">−</button>
+        <span class="val" id="octVal">0</span>
+        <button class="small" id="octUp" title="Shift all notes up an octave">+</button>
+      </div>
+
+      <div class="group">
+        <label class="check">Fingers
+          <select id="fingerSel" title="Finger numbers: 1 = thumb … 5 = little finger (N)">
+            <option value="always">Always</option>
+            <option value="auto">Until mastered</option>
+            <option value="off">Off</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="labelsChk" checked> Note names</label>
+        <label class="check" title="Play a computer sound for the keys you press (useful without a digital piano)"><input type="checkbox" id="mySoundChk"> My notes sound</label>
+      </div>
+    </div>
+
+    <div class="timeline" id="timeline">
+      <div class="tl-loop" id="tlLoop"></div>
+      <div class="tl-fill" id="tlFill"></div>
+      <div class="tl-head" id="tlHead"></div>
+    </div>
+
+    <div class="stage" id="stage">
+      <canvas id="canvas"></canvas>
+      <div class="hud">
+        <div class="hud-score"><span id="hudPoints">0</span><small>points</small></div>
+        <div class="hud-row">
+          <div><b id="hudAcc">–</b><small>accuracy</small></div>
+          <div><b id="hudStreak">0</b><small>streak</small></div>
+          <div><b id="hudMult">×1</b><small>bonus</small></div>
+        </div>
+      </div>
+      <div class="toast" id="toast" hidden></div>
+      <div class="hint" id="hint"></div>
+    </div>
+
+    <div class="modal" id="results" hidden>
+      <div class="modal-card">
+        <div class="stars" id="resStars"></div>
+        <h2 id="resTitle">Song complete</h2>
+        <div class="res-grid">
+          <div><b id="resAcc"></b><small>accuracy</small></div>
+          <div><b id="resPoints"></b><small>points</small></div>
+          <div><b id="resStreak"></b><small>best streak</small></div>
+          <div><b id="resMiss"></b><small>missed</small></div>
+        </div>
+        <p class="res-best" id="resBest"></p>
+        <div class="row">
+          <button class="btn primary" id="resAgain">Play again</button>
+          <button class="btn" id="resSlower">Try slower</button>
+          <button class="btn" id="resClose">Close</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="synth.js"></script>
+  <script src="midi-file.js"></script>
+  <script src="demo-song.js"></script>
+  <script src="fingering.js"></script>
+  <script src="staff.js"></script>
+  <script src="mic.js"></script>
+  <script src="share.js"></script>
+  <script src="practice.js"></script>
+</body>
+</html>
